@@ -21,20 +21,12 @@
             width="120"
             height="44"
           >
-          <div class="brand-sub" id="brandSub">قائمة المطعم</div>
         </div>
         <button type="button" class="lang-toggle" id="langToggle" aria-label="Toggle language">EN</button>
       </div>
     </header>
 
     <nav class="category-nav" id="categoryNav" aria-label="Categories"></nav>
-
-    <section class="hero">
-      <div class="hero-inner">
-        <h1 id="heroTitle">اكتشف قائمة حكاية</h1>
-        <p id="heroSubtitle">تصفّح الأطباق، اختر الحجم المناسب، وأكمل طلبك عبر واتساب.</p>
-      </div>
-    </section>
 
     <main id="menuRoot"></main>
   </div>
@@ -49,8 +41,8 @@
     <span class="cart-badge" id="cartBadge">0</span>
   </button>
 
-  <div class="cart-overlay" id="cartOverlay"></div>
-  <aside class="cart-panel" id="cartPanel" aria-label="Cart">
+  <div class="cart-overlay" id="cartOverlay" aria-hidden="true"></div>
+  <aside class="cart-panel" id="cartPanel" aria-label="Cart" aria-hidden="true">
     <div class="cart-panel-body">
       <div class="cart-header">
         <h2 class="cart-title" id="cartTitle">سلة الطلب</h2>

@@ -5,13 +5,13 @@
   var cart = [];
   var lang = localStorage.getItem("hikaya_lang") || "ar";
   var selectedTiers = {};
+  var cartPanelOpen = false;
+  var cartAnimMs = 280;
 
   var els = {
     root: document.documentElement,
     menuRoot: document.getElementById("menuRoot"),
     categoryNav: document.getElementById("categoryNav"),
-    heroTitle: document.getElementById("heroTitle"),
-    heroSubtitle: document.getElementById("heroSubtitle"),
     langToggle: document.getElementById("langToggle"),
     cartFab: document.getElementById("cartFab"),
     cartBadge: document.getElementById("cartBadge"),
@@ -27,9 +27,6 @@
 
   var STR = {
     ar: {
-      brandSub: "قائمة المطعم",
-      heroTitle: "اكتشف قائمة حكاية",
-      heroSubtitle: "تصفّح الأطباق، اختر الحجم المناسب، وأكمل طلبك عبر واتساب.",
       add: "+ إضافة",
       noImage: "لا توجد صورة",
       emptyMenu: "لا توجد عناصر متاحة حالياً.",
@@ -42,9 +39,6 @@
       langBtn: "EN",
     },
     en: {
-      brandSub: "Restaurant Menu",
-      heroTitle: "Discover Hikaya",
-      heroSubtitle: "Browse dishes, choose your size, and complete your order on WhatsApp.",
       add: "+ Add",
       noImage: "No image",
       emptyMenu: "No items available right now.",
@@ -99,18 +93,24 @@
     return lang === "ar" ? tier.label_ar : tier.label_en;
   }
 
+  function syncCartPanelVisibility() {
+    var open = cartPanelOpen;
+    els.cartOverlay.classList.toggle("open", open);
+    els.cartPanel.classList.toggle("open", open);
+    els.cartPanel.setAttribute("aria-hidden", open ? "false" : "true");
+    els.cartOverlay.setAttribute("aria-hidden", open ? "false" : "true");
+  }
+
   function applyLanguage() {
     els.root.lang = lang;
     els.root.dir = lang === "ar" ? "rtl" : "ltr";
     els.langToggle.textContent = t("langBtn");
-    els.heroTitle.textContent = t("heroTitle");
-    els.heroSubtitle.textContent = t("heroSubtitle");
-    document.getElementById("brandSub").textContent = t("brandSub");
     els.cartTitle.textContent = t("cart");
     els.totalLabel.textContent = t("total");
     els.checkoutBtn.textContent = t("checkout");
     renderMenu();
-    renderCart();
+    updateCartContents();
+    syncCartPanelVisibility();
     setupScrollSpy();
   }
 
@@ -296,7 +296,7 @@
       });
     }
     saveCart();
-    renderCart();
+    updateCartContents();
   }
 
   function cartCount() {
@@ -311,7 +311,7 @@
     }, 0);
   }
 
-  function renderCart() {
+  function updateCartContents() {
     var count = cartCount();
     els.cartBadge.textContent = count;
     els.cartFab.classList.toggle("visible", count > 0);
@@ -380,17 +380,31 @@
     if (action === "dec") cart[idx].quantity -= 1;
     if (action === "remove" || cart[idx].quantity <= 0) cart.splice(idx, 1);
     saveCart();
-    renderCart();
+    updateCartContents();
+  }
+
+  function setCartPanelAnimating(active) {
+    els.cartPanel.classList.toggle("animating", active);
+    els.cartOverlay.classList.toggle("animating", active);
   }
 
   function openCart() {
-    els.cartOverlay.classList.add("open");
-    els.cartPanel.classList.add("open");
+    cartPanelOpen = true;
+    setCartPanelAnimating(true);
+    syncCartPanelVisibility();
+    window.setTimeout(function () {
+      if (cartPanelOpen) setCartPanelAnimating(false);
+    }, cartAnimMs);
   }
 
   function closeCartPanel() {
-    els.cartOverlay.classList.remove("open");
-    els.cartPanel.classList.remove("open");
+    if (!cartPanelOpen) return;
+    cartPanelOpen = false;
+    setCartPanelAnimating(true);
+    syncCartPanelVisibility();
+    window.setTimeout(function () {
+      setCartPanelAnimating(false);
+    }, cartAnimMs);
   }
 
   function buildWhatsAppMessage() {
@@ -477,5 +491,8 @@
   readMenuData();
   loadCart();
   initSelectedTiers();
+  cartPanelOpen = false;
+  setCartPanelAnimating(false);
+  syncCartPanelVisibility();
   applyLanguage();
 })();
