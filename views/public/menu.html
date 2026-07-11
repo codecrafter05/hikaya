@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hikaya — Menu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;500;600&family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="/static/public/css/menu.css" rel="stylesheet">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="site-header-inner">
+        <div class="brand">
+          <img
+            src="/static/public/css/imgs/logo33.png"
+            alt="Hikaya"
+            class="brand-logo"
+            width="120"
+            height="44"
+          >
+          <div class="brand-sub" id="brandSub">قائمة المطعم</div>
+        </div>
+        <button type="button" class="lang-toggle" id="langToggle" aria-label="Toggle language">EN</button>
+      </div>
+    </header>
+
+    <nav class="category-nav" id="categoryNav" aria-label="Categories"></nav>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <h1 id="heroTitle">اكتشف قائمة حكاية</h1>
+        <p id="heroSubtitle">تصفّح الأطباق، اختر الحجم المناسب، وأكمل طلبك عبر واتساب.</p>
+      </div>
+    </section>
+
+    <main id="menuRoot"></main>
+  </div>
+
+  <button type="button" class="cart-fab" id="cartFab" aria-label="Open cart">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 6h15l-1.5 9H8L6 6Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M6 6 5 3H2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="10" cy="19" r="1.4" fill="currentColor"/>
+      <circle cx="17" cy="19" r="1.4" fill="currentColor"/>
+    </svg>
+    <span class="cart-badge" id="cartBadge">0</span>
+  </button>
+
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <aside class="cart-panel" id="cartPanel" aria-label="Cart">
+    <div class="cart-panel-body">
+      <div class="cart-header">
+        <h2 class="cart-title" id="cartTitle">سلة الطلب</h2>
+        <button type="button" class="close-cart" id="closeCart" aria-label="Close cart">&times;</button>
+      </div>
+      <div class="cart-lines" id="cartLines"></div>
+    </div>
+    <div class="cart-footer">
+      <div class="cart-total-row">
+        <span id="totalLabel">الإجمالي</span>
+        <strong id="cartTotal">0.000 BHD</strong>
+      </div>
+      <button type="button" class="checkout-btn" id="checkoutBtn" disabled>إتمام الطلب</button>
+    </div>
+  </aside>
+
+  <script id="menu-data" type="application/json">{{ menu_json | safe }}</script>
+  <script src="/static/public/js/menu.js"></script>
+</body>
+</html>

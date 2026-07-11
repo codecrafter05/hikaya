@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Hikaya — Menu Items{% endblock %}
+
+{% block content %}
+<div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
+  <div class="breadcrumb-title pe-3">Menu</div>
+  <div class="ps-3">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0 p-0">
+        <li class="breadcrumb-item"><a href="/admin/dashboard"><i class="material-icons-outlined">home</i></a></li>
+        <li class="breadcrumb-item active" aria-current="page">Items</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="ms-auto">
+    <a href="/admin/items/new" class="btn btn-grd-primary">
+      <i class="material-icons-outlined">add</i> New Item
+    </a>
+  </div>
+</div>
+
+<div class="card rounded-4">
+  <div class="card-body">
+    <h5 class="fw-bold mb-3">Menu Items</h5>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Name (AR)</th>
+            <th>Name (EN)</th>
+            <th>Category</th>
+            <th>Prices</th>
+            <th>Order</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>
+              {% if item.image_path %}
+              <img src="{{ upload_url(item.image_path) }}" alt="" width="48" height="48" class="rounded object-fit-cover">
+              {% else %}
+              <span class="text-secondary">—</span>
+              {% endif %}
+            </td>
+            <td>{{ item.name_ar }}</td>
+            <td>{{ item.name_en }}</td>
+            <td>{{ item.category.name_en if item.category else '—' }}</td>
+            <td><small>{{ format_prices(item.prices) }}</small></td>
+            <td>{{ item.display_order }}</td>
+            <td>
+              {% if item.is_active %}
+              <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+              {% else %}
+              <span class="badge bg-secondary bg-opacity-10 text-secondary">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/admin/items/{{ item.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+              <form method="post" action="/admin/items/{{ item.id }}/delete" class="d-inline"
+                    onsubmit="return confirm('Delete this menu item?');">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-secondary py-4">No menu items yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
