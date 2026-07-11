@@ -1,0 +1,112 @@
+/* Hikaya admin — neutral light theme overrides (replaces vendor blue theme) */
+
+:root,
+[data-bs-theme="light"] {
+  --bs-primary: #212529;
+  --bs-primary-rgb: 33, 37, 41;
+  --bs-link-color: #212529;
+  --bs-link-hover-color: #495057;
+  --hikaya-accent: #343a40;
+  --hikaya-accent-hover: #495057;
+  --hikaya-accent-soft: rgba(33, 37, 41, 0.08);
+}
+
+.btn-primary,
+.btn-outline-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--hikaya-accent);
+  --bs-btn-border-color: var(--hikaya-accent);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--hikaya-accent-hover);
+  --bs-btn-hover-border-color: var(--hikaya-accent-hover);
+  --bs-btn-active-bg: #1a1d20;
+  --bs-btn-active-border-color: #1a1d20;
+  --bs-btn-focus-shadow-rgb: 33, 37, 41;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--hikaya-accent);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: #ced4da;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--hikaya-accent);
+  --bs-btn-hover-border-color: var(--hikaya-accent);
+}
+
+.btn-grd-primary,
+.bg-grd-primary {
+  background-image: none !important;
+  background-color: var(--hikaya-accent) !important;
+  border-color: var(--hikaya-accent) !important;
+  color: #fff !important;
+}
+
+.btn-grd-primary:hover,
+.btn-grd-primary:focus,
+.btn-grd-primary:active {
+  background-color: var(--hikaya-accent-hover) !important;
+  border-color: var(--hikaya-accent-hover) !important;
+  color: #fff !important;
+}
+
+.text-primary {
+  color: var(--hikaya-accent) !important;
+}
+
+.bg-primary {
+  background-color: var(--hikaya-accent) !important;
+}
+
+.border-primary {
+  border-color: #ced4da !important;
+}
+
+.sidebar-wrapper .sidebar-header .logo-img {
+  width: auto;
+  height: 36px;
+  max-width: 120px;
+  object-fit: contain;
+}
+
+.sidebar-wrapper .sidebar-nav .metismenu a:active,
+.sidebar-wrapper .sidebar-nav .metismenu a:focus,
+.sidebar-wrapper .sidebar-nav .metismenu a:hover,
+.sidebar-wrapper .sidebar-nav .metismenu .mm-active > a {
+  color: var(--hikaya-accent);
+  background-color: var(--hikaya-accent-soft);
+}
+
+.sidebar-wrapper .sidebar-nav .metismenu ul a:hover {
+  color: var(--hikaya-accent);
+}
+
+.page-link.active,
+.active > .page-link {
+  background-color: var(--hikaya-accent);
+  border-color: var(--hikaya-accent);
+}
+
+.form-check-input:checked {
+  background-color: var(--hikaya-accent);
+  border-color: var(--hikaya-accent);
+}
+
+.breadcrumb-item.active {
+  color: var(--hikaya-accent);
+}
+
+.pace .pace-progress {
+  background: var(--hikaya-accent);
+}
+
+.login-brand-panel {
+  background-color: #f8f9fa !important;
+  background-image: none !important;
+  border: 1px solid #e9ecef;
+}
+
+.login-brand-panel img {
+  max-height: 120px;
+  width: auto;
+  object-fit: contain;
+}
