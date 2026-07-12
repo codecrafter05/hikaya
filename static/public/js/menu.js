@@ -4,9 +4,15 @@
   var MENU_DATA = {};
   var cart = [];
   var lang = localStorage.getItem("hikaya_lang") || "ar";
-  var selectedTiers = {};
   var cartPanelOpen = false;
+  var addModalOpen = false;
   var cartAnimMs = 280;
+  var modalAnimMs = 280;
+
+  var modalItem = null;
+  var modalTier = null;
+  var modalOptions = [];
+  var modalQty = 1;
 
   var els = {
     root: document.documentElement,
@@ -23,6 +29,17 @@
     closeCart: document.getElementById("closeCart"),
     cartTitle: document.getElementById("cartTitle"),
     totalLabel: document.getElementById("totalLabel"),
+    addOverlay: document.getElementById("addOverlay"),
+    addModal: document.getElementById("addModal"),
+    addModalTitle: document.getElementById("addModalTitle"),
+    addModalBody: document.getElementById("addModalBody"),
+    addModalTotal: document.getElementById("addModalTotal"),
+    addTotalLabel: document.getElementById("addTotalLabel"),
+    addConfirmBtn: document.getElementById("addConfirmBtn"),
+    closeAdd: document.getElementById("closeAdd"),
+    addQtyDec: document.getElementById("addQtyDec"),
+    addQtyInc: document.getElementById("addQtyInc"),
+    addQtyValue: document.getElementById("addQtyValue"),
   };
 
   var STR = {
@@ -37,6 +54,10 @@
       orderTitle: "🧾 طلب جديد",
       remove: "حذف",
       langBtn: "EN",
+      fromPrice: "يبدأ من",
+      addToCart: "إضافة إلى السلة",
+      close: "إغلاق",
+      quantity: "الكمية",
     },
     en: {
       add: "+ Add",
@@ -49,6 +70,10 @@
       orderTitle: "🧾 New Order",
       remove: "Remove",
       langBtn: "AR",
+      fromPrice: "From",
+      addToCart: "Add to cart",
+      close: "Close",
+      quantity: "Quantity",
     },
   };
 
@@ -77,20 +102,106 @@
     return itemId + ":" + tier.label_ar + ":" + tier.label_en + ":" + tier.price;
   }
 
+  function choiceKey(choice) {
+    return choice.label_ar + ":" + choice.label_en + ":" + Number(choice.price_delta || 0);
+  }
+
   function formatPrice(value) {
     return Number(value).toFixed(3);
+  }
+
+  function currency() {
+    return MENU_DATA.currency_label || "BHD";
   }
 
   function localizedName(obj) {
     return lang === "ar" ? obj.name_ar : obj.name_en;
   }
 
-  function localizedDesc(obj) {
-    return lang === "ar" ? obj.description_ar : obj.description_en;
+  function localizedNote(obj) {
+    return lang === "ar" ? obj.note_ar : obj.note_en;
   }
 
   function localizedTier(tier) {
     return lang === "ar" ? tier.label_ar : tier.label_en;
+  }
+
+  function localizedGroup(group) {
+    return lang === "ar" ? group.group_ar : group.group_en;
+  }
+
+  function localizedChoice(choice) {
+    return lang === "ar" ? choice.label_ar : choice.label_en;
+  }
+
+  function itemOptionGroups(item) {
+    return item.option_groups || [];
+  }
+
+  function itemNeedsConfig(item) {
+    var prices = item.prices || [];
+    return prices.length > 1 || itemOptionGroups(item).length > 0;
+  }
+
+  function itemHasPriceDeltas(item) {
+    return itemOptionGroups(item).some(function (group) {
+      return (group.choices || []).some(function (choice) {
+        return Number(choice.price_delta || 0) !== 0;
+      });
+    });
+  }
+
+  function startingPrice(item) {
+    var prices = item.prices || [];
+    if (!prices.length) return 0;
+    var minTier = Math.min.apply(
+      null,
+      prices.map(function (tier) {
+        return Number(tier.price);
+      })
+    );
+    var minDelta = itemOptionGroups(item).reduce(function (sum, group) {
+      var deltas = (group.choices || []).map(function (choice) {
+        return Number(choice.price_delta || 0);
+      });
+      return sum + (deltas.length ? Math.min.apply(null, deltas) : 0);
+    }, 0);
+    return minTier + minDelta;
+  }
+
+  function cardPriceText(item) {
+    var prices = item.prices || [];
+    if (!prices.length) return "";
+    var amount = formatPrice(startingPrice(item)) + " " + currency();
+    if (prices.length > 1 || itemHasPriceDeltas(item)) {
+      return t("fromPrice") + " " + amount;
+    }
+    return amount;
+  }
+
+  function optionsDelta(options) {
+    return (options || []).reduce(function (sum, choice) {
+      return sum + Number(choice.price_delta || 0);
+    }, 0);
+  }
+
+  function unitPriceFor(tier, options) {
+    return Number((Number(tier.price) + optionsDelta(options)).toFixed(3));
+  }
+
+  function buildLineKey(itemId, tier, options) {
+    var optionPart = (options || [])
+      .map(function (choice) {
+        return choice.label_en + ":" + Number(choice.price_delta || 0).toFixed(3);
+      })
+      .join(",");
+    return itemId + "|" + tier.label_en + "|" + tier.price + "|" + optionPart;
+  }
+
+  function defaultOptionsFor(item) {
+    return itemOptionGroups(item).map(function (group) {
+      return (group.choices && group.choices[0]) || null;
+    });
   }
 
   function syncCartPanelVisibility() {
@@ -101,6 +212,15 @@
     els.cartOverlay.setAttribute("aria-hidden", open ? "false" : "true");
   }
 
+  function syncAddModalVisibility() {
+    var open = addModalOpen;
+    els.addOverlay.classList.toggle("open", open);
+    els.addModal.classList.toggle("open", open);
+    els.addModal.setAttribute("aria-hidden", open ? "false" : "true");
+    els.addOverlay.setAttribute("aria-hidden", open ? "false" : "true");
+    document.body.classList.toggle("modal-open", open);
+  }
+
   function applyLanguage() {
     els.root.lang = lang;
     els.root.dir = lang === "ar" ? "rtl" : "ltr";
@@ -108,9 +228,16 @@
     els.cartTitle.textContent = t("cart");
     els.totalLabel.textContent = t("total");
     els.checkoutBtn.textContent = t("checkout");
+    els.addTotalLabel.textContent = t("total");
+    els.addConfirmBtn.textContent = t("addToCart");
+    els.closeAdd.setAttribute("aria-label", t("close"));
     renderMenu();
     updateCartContents();
     syncCartPanelVisibility();
+    if (addModalOpen && modalItem) {
+      renderAddModal();
+    }
+    syncAddModalVisibility();
     setupScrollSpy();
   }
 
@@ -137,6 +264,7 @@
 
     els.menuRoot.innerHTML = MENU_DATA.categories
       .map(function (cat) {
+        var note = localizedNote(cat);
         return (
           '<section class="menu-section" id="cat-' +
           cat.id +
@@ -147,6 +275,7 @@
           '<h2 class="section-title">' +
           localizedName(cat) +
           "</h2>" +
+          (note ? '<p class="section-note">' + note + "</p>" : "") +
           '<div class="items-grid">' +
           cat.items
             .map(function (item) {
@@ -162,51 +291,9 @@
   }
 
   function renderItemCard(item) {
-    var prices = item.prices || [];
-    var selected = selectedTiers[item.id] || prices[0];
-    var desc = localizedDesc(item);
     var imageHtml = item.image_url
-      ? '<img src="' + item.image_url + '" alt="' + localizedName(item) + '">'
+      ? '<img src="' + item.image_url + '" alt="' + localizedName(item) + '" loading="lazy">'
       : '<div class="item-image-placeholder">' + t("noImage") + "</div>";
-
-    var priceHtml = "";
-    if (prices.length > 1) {
-      priceHtml =
-        '<div class="tier-list" data-item-id="' +
-        item.id +
-        '">' +
-        prices
-          .map(function (tier) {
-            var active =
-              selected &&
-              selected.label_en === tier.label_en &&
-              selected.price === tier.price
-                ? " active"
-                : "";
-            return (
-              '<button type="button" class="tier-pill' +
-              active +
-              '" data-item-id="' +
-              item.id +
-              '" data-tier-key="' +
-              tierKey(item.id, tier) +
-              '">' +
-              localizedTier(tier) +
-              " " +
-              formatPrice(tier.price) +
-              "</button>"
-            );
-          })
-          .join("") +
-        "</div>";
-    } else if (prices.length === 1) {
-      priceHtml =
-        '<p class="item-price-single">' +
-        formatPrice(prices[0].price) +
-        " " +
-        MENU_DATA.currency_label +
-        "</p>";
-    }
 
     return (
       '<article class="item-card" data-item-id="' +
@@ -219,8 +306,9 @@
       '<h3 class="item-name">' +
       localizedName(item) +
       "</h3>" +
-      (desc ? '<p class="item-desc">' + desc + "</p>" : "") +
-      priceHtml +
+      '<p class="item-price-single">' +
+      cardPriceText(item) +
+      "</p>" +
       '<div class="card-footer">' +
       '<button type="button" class="add-btn" data-item-id="' +
       item.id +
@@ -232,25 +320,9 @@
   }
 
   function bindMenuEvents() {
-    document.querySelectorAll(".tier-pill").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var itemId = Number(btn.dataset.itemId);
-        var item = findItem(itemId);
-        if (!item) return;
-        var tier = item.prices.find(function (p) {
-          return tierKey(itemId, p) === btn.dataset.tierKey;
-        });
-        selectedTiers[itemId] = tier;
-        btn.closest(".tier-list").querySelectorAll(".tier-pill").forEach(function (pill) {
-          pill.classList.remove("active");
-        });
-        btn.classList.add("active");
-      });
-    });
-
     document.querySelectorAll(".add-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        addToCart(Number(btn.dataset.itemId));
+        onAddClick(Number(btn.dataset.itemId));
       });
     });
 
@@ -273,26 +345,234 @@
     return null;
   }
 
-  function addToCart(itemId) {
+  function onAddClick(itemId) {
     var item = findItem(itemId);
-    if (!item || !item.prices.length) return;
-    var tier = selectedTiers[itemId] || item.prices[0];
-    var lineKey = itemId + "|" + tier.label_en + "|" + tier.price;
+    if (!item || !(item.prices || []).length) return;
+    if (!itemNeedsConfig(item)) {
+      addConfiguredLine(item, item.prices[0], [], 1);
+      return;
+    }
+    openAddModal(item);
+  }
+
+  function openAddModal(item) {
+    modalItem = item;
+    modalTier = item.prices[0];
+    modalOptions = defaultOptionsFor(item);
+    modalQty = 1;
+    addModalOpen = true;
+    renderAddModal();
+    els.addModal.classList.add("animating");
+    els.addOverlay.classList.add("animating");
+    syncAddModalVisibility();
+    window.setTimeout(function () {
+      if (addModalOpen) {
+        els.addModal.classList.remove("animating");
+        els.addOverlay.classList.remove("animating");
+      }
+    }, modalAnimMs);
+  }
+
+  function closeAddModal() {
+    if (!addModalOpen) return;
+    addModalOpen = false;
+    els.addModal.classList.add("animating");
+    els.addOverlay.classList.add("animating");
+    syncAddModalVisibility();
+    window.setTimeout(function () {
+      els.addModal.classList.remove("animating");
+      els.addOverlay.classList.remove("animating");
+      if (!addModalOpen) {
+        modalItem = null;
+        modalTier = null;
+        modalOptions = [];
+        modalQty = 1;
+        els.addModalBody.innerHTML = "";
+      }
+    }, modalAnimMs);
+  }
+
+  function renderAddModal() {
+    if (!modalItem || !modalTier) return;
+
+    els.addModalTitle.textContent = localizedName(modalItem);
+    els.addQtyValue.textContent = String(modalQty);
+    els.addConfirmBtn.textContent = t("addToCart");
+    els.addTotalLabel.textContent = t("total");
+    updateModalTotal();
+
+    var imageHtml = modalItem.image_url
+      ? '<img src="' +
+        modalItem.image_url +
+        '" alt="' +
+        localizedName(modalItem) +
+        '" class="add-modal-thumb">'
+      : '<div class="add-modal-thumb placeholder">' + t("noImage") + "</div>";
+
+    var prices = modalItem.prices || [];
+    var tierHtml = "";
+    if (prices.length > 1) {
+      tierHtml =
+        '<div class="option-group">' +
+        '<p class="option-group-label">' +
+        (lang === "ar" ? "الحجم / السعر" : "Size / Price") +
+        "</p>" +
+        '<div class="option-list modal-tier-list">' +
+        prices
+          .map(function (tier) {
+            var active =
+              modalTier.label_en === tier.label_en &&
+              Number(modalTier.price) === Number(tier.price)
+                ? " active"
+                : "";
+            return (
+              '<button type="button" class="option-pill' +
+              active +
+              '" data-modal-tier-key="' +
+              tierKey(modalItem.id, tier) +
+              '">' +
+              localizedTier(tier) +
+              " " +
+              formatPrice(tier.price) +
+              "</button>"
+            );
+          })
+          .join("") +
+        "</div></div>";
+    }
+
+    var optionsHtml = itemOptionGroups(modalItem)
+      .map(function (group, groupIndex) {
+        var activeChoice = modalOptions[groupIndex] || group.choices[0];
+        return (
+          '<div class="option-group" data-group-index="' +
+          groupIndex +
+          '">' +
+          '<p class="option-group-label">' +
+          localizedGroup(group) +
+          "</p>" +
+          '<div class="option-list">' +
+          (group.choices || [])
+            .map(function (choice) {
+              var active =
+                activeChoice &&
+                activeChoice.label_en === choice.label_en &&
+                Number(activeChoice.price_delta || 0) === Number(choice.price_delta || 0)
+                  ? " active"
+                  : "";
+              var delta = Number(choice.price_delta || 0);
+              var deltaHtml =
+                delta > 0
+                  ? ' <span class="option-delta">+' + formatPrice(delta) + "</span>"
+                  : "";
+              return (
+                '<button type="button" class="option-pill' +
+                active +
+                '" data-group-index="' +
+                groupIndex +
+                '" data-choice-key="' +
+                choiceKey(choice) +
+                '">' +
+                localizedChoice(choice) +
+                deltaHtml +
+                "</button>"
+              );
+            })
+            .join("") +
+          "</div></div>"
+        );
+      })
+      .join("");
+
+    els.addModalBody.innerHTML =
+      '<div class="add-modal-hero">' +
+      imageHtml +
+      '<div class="add-modal-hero-text">' +
+      '<p class="add-modal-name">' +
+      localizedName(modalItem) +
+      "</p>" +
+      '<p class="add-modal-base-price">' +
+      formatPrice(Number(modalTier.price)) +
+      " " +
+      currency() +
+      "</p>" +
+      "</div></div>" +
+      tierHtml +
+      optionsHtml;
+
+    bindModalEvents();
+  }
+
+  function bindModalEvents() {
+    els.addModalBody.querySelectorAll("[data-modal-tier-key]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var tier = modalItem.prices.find(function (p) {
+          return tierKey(modalItem.id, p) === btn.dataset.modalTierKey;
+        });
+        if (!tier) return;
+        modalTier = tier;
+        renderAddModal();
+      });
+    });
+
+    els.addModalBody.querySelectorAll("[data-choice-key]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var groupIndex = Number(btn.dataset.groupIndex);
+        var group = itemOptionGroups(modalItem)[groupIndex];
+        if (!group) return;
+        var choice = (group.choices || []).find(function (c) {
+          return choiceKey(c) === btn.dataset.choiceKey;
+        });
+        if (!choice) return;
+        modalOptions[groupIndex] = choice;
+        renderAddModal();
+      });
+    });
+  }
+
+  function updateModalTotal() {
+    if (!modalItem || !modalTier) return;
+    var unit = unitPriceFor(modalTier, modalOptions.filter(Boolean));
+    var total = unit * modalQty;
+    els.addModalTotal.textContent = formatPrice(total) + " " + currency();
+  }
+
+  function confirmAddFromModal() {
+    if (!modalItem || !modalTier) return;
+    addConfiguredLine(
+      modalItem,
+      modalTier,
+      modalOptions.filter(Boolean),
+      modalQty
+    );
+    closeAddModal();
+  }
+
+  function addConfiguredLine(item, tier, options, quantity) {
+    var qty = Math.max(1, Number(quantity) || 1);
+    var lineKey = buildLineKey(item.id, tier, options);
     var existing = cart.find(function (line) {
       return line.line_key === lineKey;
     });
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity += qty;
     } else {
       cart.push({
         line_key: lineKey,
-        item_id: itemId,
+        item_id: item.id,
         name_ar: item.name_ar,
         name_en: item.name_en,
         tier_label_ar: tier.label_ar,
         tier_label_en: tier.label_en,
-        unit_price: tier.price,
-        quantity: 1,
+        options: options.map(function (choice) {
+          return {
+            label_ar: choice.label_ar,
+            label_en: choice.label_en,
+            price_delta: Number(choice.price_delta || 0),
+          };
+        }),
+        unit_price: unitPriceFor(tier, options),
+        quantity: qty,
       });
     }
     saveCart();
@@ -311,12 +591,29 @@
     }, 0);
   }
 
+  function lineOptionsText(line) {
+    var options = line.options || [];
+    if (!options.length) {
+      var onlyTier = lang === "ar" ? line.tier_label_ar : line.tier_label_en;
+      if (onlyTier === "Price" || onlyTier === "السعر") return "";
+      return onlyTier;
+    }
+    var labels = options.map(function (choice) {
+      return lang === "ar" ? choice.label_ar : choice.label_en;
+    });
+    var tierLabel = lang === "ar" ? line.tier_label_ar : line.tier_label_en;
+    if (tierLabel && tierLabel !== "Price" && tierLabel !== "السعر") {
+      return tierLabel + " · " + labels.join(" · ");
+    }
+    return labels.join(" · ");
+  }
+
   function updateCartContents() {
     var count = cartCount();
     els.cartBadge.textContent = count;
     els.cartFab.classList.toggle("visible", count > 0);
     els.checkoutBtn.disabled = count === 0;
-    els.cartTotal.textContent = formatPrice(cartTotal()) + " " + MENU_DATA.currency_label;
+    els.cartTotal.textContent = formatPrice(cartTotal()) + " " + currency();
 
     if (!count) {
       els.cartLines.innerHTML = '<div class="cart-empty">' + t("emptyCart") + "</div>";
@@ -326,7 +623,7 @@
     els.cartLines.innerHTML = cart
       .map(function (line) {
         var name = lang === "ar" ? line.name_ar : line.name_en;
-        var tier = lang === "ar" ? line.tier_label_ar : line.tier_label_en;
+        var detail = lineOptionsText(line);
         var subtotal = line.quantity * line.unit_price;
         return (
           '<div class="cart-line" data-line-key="' +
@@ -335,13 +632,11 @@
           '<div><p class="line-name">' +
           name +
           "</p>" +
-          '<p class="line-tier">' +
-          tier +
-          "</p>" +
+          (detail ? '<p class="line-tier">' + detail + "</p>" : "") +
           '<p class="line-subtotal">' +
           formatPrice(subtotal) +
           " " +
-          MENU_DATA.currency_label +
+          currency() +
           "</p></div>" +
           '<div class="line-controls">' +
           '<div class="qty-controls">' +
@@ -389,6 +684,7 @@
   }
 
   function openCart() {
+    if (addModalOpen) closeAddModal();
     cartPanelOpen = true;
     setCartPanelAnimating(true);
     syncCartPanelVisibility();
@@ -411,22 +707,21 @@
     var lines = [t("orderTitle"), ""];
     cart.forEach(function (line) {
       var name = lang === "ar" ? line.name_ar : line.name_en;
-      var tier = lang === "ar" ? line.tier_label_ar : line.tier_label_en;
+      var detail = lineOptionsText(line);
       var subtotal = line.quantity * line.unit_price;
       lines.push(
         line.quantity +
           "x " +
           name +
-          " (" +
-          tier +
-          ") - " +
+          (detail ? " (" + detail + ")" : "") +
+          " - " +
           formatPrice(subtotal) +
           " " +
-          MENU_DATA.currency_label
+          currency()
       );
     });
     lines.push("");
-    lines.push(t("total") + ": " + formatPrice(cartTotal()) + " " + MENU_DATA.currency_label);
+    lines.push(t("total") + ": " + formatPrice(cartTotal()) + " " + currency());
     return lines.join("\n");
   }
 
@@ -467,16 +762,6 @@
     window._hikayaScrollSpy();
   }
 
-  function initSelectedTiers() {
-    MENU_DATA.categories.forEach(function (cat) {
-      cat.items.forEach(function (item) {
-        if (item.prices && item.prices.length) {
-          selectedTiers[item.id] = item.prices[0];
-        }
-      });
-    });
-  }
-
   els.langToggle.addEventListener("click", function () {
     lang = lang === "ar" ? "en" : "ar";
     localStorage.setItem("hikaya_lang", lang);
@@ -488,11 +773,34 @@
   els.cartOverlay.addEventListener("click", closeCartPanel);
   els.checkoutBtn.addEventListener("click", checkoutWhatsApp);
 
+  els.closeAdd.addEventListener("click", closeAddModal);
+  els.addOverlay.addEventListener("click", closeAddModal);
+  els.addConfirmBtn.addEventListener("click", confirmAddFromModal);
+  els.addQtyDec.addEventListener("click", function () {
+    if (modalQty > 1) {
+      modalQty -= 1;
+      els.addQtyValue.textContent = String(modalQty);
+      updateModalTotal();
+    }
+  });
+  els.addQtyInc.addEventListener("click", function () {
+    modalQty += 1;
+    els.addQtyValue.textContent = String(modalQty);
+    updateModalTotal();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && addModalOpen) {
+      closeAddModal();
+    }
+  });
+
   readMenuData();
   loadCart();
-  initSelectedTiers();
   cartPanelOpen = false;
+  addModalOpen = false;
   setCartPanelAnimating(false);
   syncCartPanelVisibility();
+  syncAddModalVisibility();
   applyLanguage();
 })();

@@ -20,6 +20,7 @@ class MenuItem(Base):
     description_en: Mapped[str | None] = mapped_column(Text, nullable=True)
     image_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     prices: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    option_groups: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

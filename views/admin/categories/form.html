@@ -32,6 +32,18 @@
                  value="{{ category.name_en if category else '' }}">
         </div>
         <div class="col-md-6">
+          <label class="form-label">Note (Arabic)</label>
+          <input type="text" name="note_ar" class="form-control"
+                 placeholder="e.g. استلام من الفرع"
+                 value="{{ category.note_ar if category and category.note_ar else '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Note (English)</label>
+          <input type="text" name="note_en" class="form-control"
+                 placeholder="e.g. Pickup only"
+                 value="{{ category.note_en if category and category.note_en else '' }}">
+        </div>
+        <div class="col-md-6">
           <label class="form-label">Display Order</label>
           <input type="number" name="display_order" class="form-control"
                  value="{{ category.display_order if category else 0 }}">

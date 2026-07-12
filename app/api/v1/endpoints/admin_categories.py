@@ -68,12 +68,16 @@ def create_category(
     db: Session = Depends(get_db),
     name_ar: str = Form(...),
     name_en: str = Form(...),
+    note_ar: str = Form(""),
+    note_en: str = Form(""),
     display_order: int = Form(0),
     is_active: str | None = Form(None),
 ):
     category = Category(
         name_ar=name_ar.strip(),
         name_en=name_en.strip(),
+        note_ar=note_ar.strip() or None,
+        note_en=note_en.strip() or None,
         display_order=display_order,
         is_active=_checkbox_bool(is_active),
     )
@@ -115,6 +119,8 @@ def update_category(
     db: Session = Depends(get_db),
     name_ar: str = Form(...),
     name_en: str = Form(...),
+    note_ar: str = Form(""),
+    note_en: str = Form(""),
     display_order: int = Form(0),
     is_active: str | None = Form(None),
 ):
@@ -123,6 +129,8 @@ def update_category(
         return RedirectResponse(url="/admin/categories", status_code=302)
     category.name_ar = name_ar.strip()
     category.name_en = name_en.strip()
+    category.note_ar = note_ar.strip() or None
+    category.note_en = note_en.strip() or None
     category.display_order = display_order
     category.is_active = _checkbox_bool(is_active)
     db.commit()

@@ -59,6 +59,36 @@
     </div>
   </aside>
 
+  <div class="add-overlay" id="addOverlay" aria-hidden="true"></div>
+  <div
+    class="add-modal"
+    id="addModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="addModalTitle"
+    aria-hidden="true"
+  >
+    <div class="add-modal-header">
+      <h2 class="add-modal-title" id="addModalTitle"></h2>
+      <button type="button" class="close-add" id="closeAdd" aria-label="Close">&times;</button>
+    </div>
+    <div class="add-modal-body" id="addModalBody"></div>
+    <div class="add-modal-footer">
+      <div class="add-modal-total-row">
+        <span id="addTotalLabel">الإجمالي</span>
+        <strong id="addModalTotal">0.000 BHD</strong>
+      </div>
+      <div class="add-modal-actions">
+        <div class="add-qty-controls" aria-label="Quantity">
+          <button type="button" class="qty-btn" id="addQtyDec" aria-label="Decrease quantity">−</button>
+          <span id="addQtyValue">1</span>
+          <button type="button" class="qty-btn" id="addQtyInc" aria-label="Increase quantity">+</button>
+        </div>
+        <button type="button" class="add-confirm-btn" id="addConfirmBtn">إضافة إلى السلة</button>
+      </div>
+    </div>
+  </div>
+
   <script id="menu-data" type="application/json">{{ menu_json | safe }}</script>
   <script src="/static/public/js/menu.js"></script>
 </body>

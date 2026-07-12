@@ -44,6 +44,7 @@ def _build_menu_payload(db: Session) -> dict:
                     "description_en": item.description_en or "",
                     "image_url": upload_url(item.image_path),
                     "prices": item.prices or [],
+                    "option_groups": item.option_groups or [],
                 }
             )
 
@@ -53,6 +54,8 @@ def _build_menu_payload(db: Session) -> dict:
                 "id": category.id,
                 "name_ar": category.name_ar,
                 "name_en": category.name_en,
+                "note_ar": category.note_ar or "",
+                "note_en": category.note_en or "",
                 "items": items_by_category.get(category.id, []),
             }
             for category in categories
